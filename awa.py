@@ -28,10 +28,10 @@ n_pe= n0_base
 kpn1=pf.calculate_kpn1(n_pe)
 print(kpn1)
 window_size=6
-num_points=700
+num_points=100
 # Declare intrinsic parameters
-emit_nx = 100e-6
-emit_ny = 0.5e-6
+emit_nx = 200e-6
+emit_ny = 2e-6
 sigma_z = 600e-6
 Q =3e-9
 E = 58e6
