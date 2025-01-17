@@ -23,7 +23,7 @@ plt.rcParams['figure.dpi'] =200
 matplotlib.rcParams.update({'font.size': 12})
 from scipy.integrate import odeint
 import prediction_functions as pf
-n0_base = 2e20
+n0_base = 1e20
 n_pe= n0_base
 kpn1=pf.calculate_kpn1(n_pe)
 print(kpn1)
@@ -33,12 +33,12 @@ num_points=500
 emit_nx = 200e-6
 emit_ny = 2e-6
 sigma_z = 600e-6
-Q = 2e-9
+Q = 3e-9
 E = 58e6
 gamma = E/0.511e6 + 1
 gamma_b = gamma
 #Define plasma parameters
-points = 30
+points = 50
 #emittance_n_x = 0.9e-6
 length = 1e-2
 sigma = 1e-2

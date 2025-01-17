@@ -23,27 +23,27 @@ plt.rcParams['figure.dpi'] =200
 matplotlib.rcParams.update({'font.size': 12})
 from scipy.integrate import odeint
 import prediction_functions as pf
-n0_base = 2e20
+n0_base = 5e19
 n_pe= n0_base
 kpn1=pf.calculate_kpn1(n_pe)
 print(kpn1)
-window_size=6
-num_points=100
+window_size=5
+num_points=300
 # Declare intrinsic parameters
-emit_nx = 200e-6
-emit_ny = 2e-6
+emit_nx = 207e-6
+emit_ny = 14e-6
 sigma_z = 600e-6
-Q =3e-9
+Q =2e-9
 E = 58e6
 gamma = E/0.511e6 + 1
 gamma_b = gamma
 #Define plasma parameters
-points = 60
+points = 90
 #emittance_n_x = 0.9e-6
-length = 2e-2
-sigma = 0.5e-2
+length = 1e-2
+sigma = 0.25e-2
 #extra_length = 5e-2
-zs = np.linspace(0,0.04, points)
+zs = np.linspace(0,0.02, points)
 
 #ellipticity = 2
 ellipticity_2 = 1
@@ -88,8 +88,8 @@ ellipticity_all = np.array(list(density_ellipticity_map.values()))
 ellipticity_interpolator = interp1d(unique_densities, ellipticity_all, kind='linear', fill_value=(1, 1), bounds_error=False)
 min_density = unique_densities.min()
 print(f'Minimum density: {min_density}')
-points = 60
-zs = np.linspace(0,0.04, points)
+points = 90
+zs = np.linspace(0,0.02, points)
 zs_drift = np.linspace(zs.min(),zs.max(),points)
 density_pic=[]
 for z in zs_drift:
@@ -115,6 +115,11 @@ alpha_x_values_axi = solution_axi[:, 1]
 beta_y_values_axi = solution_axi[:, 2]
 alpha_y_values_axi = solution_axi[:, 3]
 
+beta_x_start = beta_x_values[0]
+alpha_x_start = alpha_x_values[0]
+beta_y_start = beta_y_values[0]
+alpha_y_start = alpha_y_values[0]
+
 beta_x_end = beta_x_values[-1]
 alpha_x_end = alpha_x_values[-1]
 beta_y_end = beta_y_values[-1]
@@ -133,7 +138,7 @@ plt.plot(zs_drift,density_pic,label='Density profile')
 plt.plot(zs_all,ellipticity_all,label='Ellipticity profile')
 plt.legend()
 plt.show()
-plt.savefig('ellipticity.png')
+plt.savefig('ellipticity_.png')
 
 #plt.plot(zs,beta_x_values)
 zs_drift = np.linspace(zs.max(),zs.min(),points)
@@ -154,15 +159,22 @@ initial_drift_kpn1 = [beta_x_end/kpn1[0],alpha_x_end,beta_y_end/kpn1[0],alpha_y_
 initial_drift_kpn1_axi = [beta_x_end_axi/kpn1[0],alpha_x_end_axi,beta_y_end_axi/kpn1[0],alpha_y_end_axi]
 initial_sigma_x = pf.sigma_beam(beta_x_end,emit_nx,gamma)
 initial_sigma_y = pf.sigma_beam(beta_y_end,emit_ny,gamma)
+final_sigma_x = pf.sigma_beam(beta_x_start,emit_nx,gamma)
+final_sigma_y = pf.sigma_beam(beta_y_start,emit_ny,gamma)
 initial_sigma_x_axi = pf.sigma_beam(beta_x_end_axi,emit_nx,gamma)
 initial_sigma_y_axi = pf.sigma_beam(beta_y_end_axi,emit_ny,gamma)
 print(f'Charge: {Q}')
 beam_density = pf.calculate_beam_density(Q,initial_sigma_x,initial_sigma_y, sigma_z)
 beam_density_axi = pf.calculate_beam_density(Q,initial_sigma_x_axi,initial_sigma_y_axi, sigma_z)
+#beam_density_axi_final = pf.calculate_beam_density(Q,final_sigma_x_axi,final_sigma_y_axi, sigma_z)
+beam_density_final = pf.calculate_beam_density(Q,final_sigma_x,final_sigma_y, sigma_z)
 normalized_beam = beam_density/n_pe
 normalized_beam_axi = beam_density_axi/n_pe
-print(r'Normalized beam density initially:' + str(normalized_beam))
+normalized_beam_final = beam_density_final/n_pe
+print(r'Normalized beam density initially (PIC):' + str(normalized_beam))
+print(r'Normalized beam density finally:' + str(normalized_beam_final))
 print(r'Normalized beam density axi initially:' + str(normalized_beam_axi))
+print(r'Normalized beam density axi finally:' + str(normalized_beam_final))
 print(rf'Initial drift parameters ($\beta_x$,$\alpha_x$,$\beta_y$,$\alpha_y$): {initial_drift}')
 print(rf'Initial drift parameters axi ($\beta_x$,$\alpha_x$,$\beta_y$,$\alpha_y$): {initial_drift_axi}')
 print(rf'Initial drift parameters at PIC ($\beta_x/kpn1$,$\alpha_x$,$\beta_y/kpn1$,$\alpha_y$): {initial_drift_kpn1}')
@@ -207,7 +219,8 @@ sigma_x_wrong = np.sqrt(beta_x_plasma_wrong*emit_nx/gamma_b)
 sigma_y_wrong = np.sqrt(beta_y_plasma_wrong*emit_ny/gamma_b)
 sigma_x_drift = np.sqrt(beta_x_drift*emit_nx/gamma_b)
 sigma_y_drift = np.sqrt(beta_y_drift*emit_ny/gamma_b)
-
+density_asym = pf.calculate_beam_density(Q,sigma_x,sigma_y,sigma_z)/np.multiply(density_pic,n_pe)
+density_axi = pf.calculate_beam_density(Q,sigma_x_wrong,sigma_y_wrong,sigma_z)/np.multiply(density_pic,n_pe)
 # Plot the solution
 fig, (ax2, ax1) = plt.subplots(2, 1, figsize=(6, 8), sharex=True)
 # Adjust space between subplots
@@ -220,15 +233,19 @@ sigma_x_wrong_line, = ax1.plot(-zs_drift, sigma_x_wrong*1e6, color='red', linest
 sigma_y_drift_line, = ax1.plot(-zs_drift, sigma_y_drift*1e6, color='blue', label='y (vacuum)')
 sigma_y_line, = ax1.plot(-zs_drift, sigma_y*1e6, color='green', label=r'y ($\alpha_p$)')
 sigma_y_wrong_line, = ax1.plot(-zs_drift, sigma_y_wrong*1e6, color='green', linestyle='dotted', label=r'y (axi)')
+density_line, =  ax2.plot(-zs_drift, density_asym,color='pink', label=r'$n_b$ ($\alpha_p$)')
+density_axi_line, =  ax2.plot(-zs_drift, density_axi, color='pink', linestyle='dotted', label=r'$n_b$ (axi)')
+density_line_2, =  ax1.plot([],[], color='pink', label=r'$n_b$ ($\alpha_p$)')
+#density_axi_line_2, =  ax1.plot([],[], color='pink', linestyle='dotted', label=r'$n_b$ (axi)')
 # Plot density and ellipticity on ax2
 ax1.plot(zs_all, ellipticity_all, label='Ellipticity')
-ax1.plot(zs_all, density, color='purple', label='Density')
+#ax1.plot(zs_all, density_all, color='purple', label='Density')
 #ax1.plot(zst,ellipticity_all, label=r'$\alpha_p$ (flattop)')
-blank_handle, = ax1.plot(np.NaN, np.NaN, '-', color='none', label='')
+#blank_handle, = ax1.plot(np.NaN, np.NaN, '-', color='none', label='')
 
 handles, labels = ax1.get_legend_handles_labels()
-handles.append(blank_handle)  # Adding the blank line to the handles list
-labels.append('')  # Adding an empty string as a label
+#handles.append(blank_handle)  # Adding the blank line to the handles list
+#labels.append('')  # Adding an empty string as a label
 
 #density_line, = ax1.plot(-zs_drift, np.multiply(density, 100), color='purple', label='Plasma profile (a.u.)')
 #handles.append(density_line)  # Adding the blank line to the handles list
@@ -251,10 +268,11 @@ beta_y_line, = ax2.plot(-zs_drift, beta_y_plasma*1e2, color='green', label='y ($
 beta_y_wrong_line, = ax2.plot(-zs_drift, beta_y_plasma_wrong*1e2, color='green', linestyle='dotted', label='y (axi)')
 ax2.plot(zs_all, ellipticity_all, label='Ellipticity')
 ax2.plot(zs_all, density, color='purple', label='Plasma density')
+
 # Plot density and ellipticity on ax2
 #ax2.plot(density, ellipticity_all, color='purple', label='Ellipticity')
 #density_line2, = ax2.plot(-zs_drift, np.multiply(density, 1), color='purple', label='Plasma profile (a.u.)')
-ax2.set_ylim(0, 4)
+ax2.set_ylim(0, 3)
 #ax2.set_xlim(-0.06, 0.06)
 #ax2.set_yticks(np.linspace(0, 2, num=5))
 #plt.xticks(np.linspace(-0.04, 0.04, num=3))
@@ -263,7 +281,7 @@ ax2.set_ylim(0, 4)
 ax2.set_ylabel(r'$\beta$ (cm)')
 ax1.set_xlabel('z (m)')
 
-blank_handle2, = ax1.plot(np.NaN, np.NaN, '-', color='none', label='')
+#blank_handle2, = ax1.plot(np.NaN, np.NaN, '-', color='none', label='')
 
 # Add a single legend
 fig.legend(handles=handles, labels=labels, loc='upper center', bbox_to_anchor=(0.44, 1.02), fancybox=True, shadow=True, ncol=3,fontsize=12)
