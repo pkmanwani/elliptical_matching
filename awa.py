@@ -17,7 +17,7 @@ import matplotlib.patches as patches
 from scipy.interpolate import RectBivariateSpline
 from scipy.stats import norm
 import contextlib
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from scipy.interpolate import CubicSpline
 plt.rcParams['figure.dpi'] =200
 matplotlib.rcParams.update({'font.size': 12})
@@ -236,7 +236,7 @@ sigma_y_wrong_line, = ax1.plot(-zs_drift, sigma_y_wrong*1e6, color='green', line
 density_line, =  ax2.plot(-zs_drift, density_asym,color='pink', label=r'$n_b$ ($\alpha_p$)')
 density_axi_line, =  ax2.plot(-zs_drift, density_axi, color='pink', linestyle='dotted', label=r'$n_b$ (axi)')
 density_line_2, =  ax1.plot([],[], color='pink', label=r'$n_b$ ($\alpha_p$)')
-#density_axi_line_2, =  ax1.plot([],[], color='pink', linestyle='dotted', label=r'$n_b$ (axi)')
+density_axi_line_2, =  ax1.plot([],[], color='pink', linestyle='dotted', label=r'$n_b$ (axi)')
 # Plot density and ellipticity on ax2
 ax1.plot(zs_all, ellipticity_all, label='Ellipticity')
 #ax1.plot(zs_all, density_all, color='purple', label='Density')
@@ -266,8 +266,17 @@ beta_y_drift_line, = ax2.plot(-zs_drift, beta_y_drift*1e2, color='blue', label='
 beta_y_line, = ax2.plot(-zs_drift, beta_y_plasma*1e2, color='green', label='y ($\alpha_p$)')
 
 beta_y_wrong_line, = ax2.plot(-zs_drift, beta_y_plasma_wrong*1e2, color='green', linestyle='dotted', label='y (axi)')
-ax2.plot(zs_all, ellipticity_all, label='Ellipticity')
-ax2.plot(zs_all, density, color='purple', label='Plasma density')
+# Mirror the arrays
+zs_all = np.array(zs_all)
+ellipticity_all = np.array(ellipticity_all)
+density = np.array(density)
+zs_all_full = np.concatenate([-zs_all[::-1], zs_all])
+ellipticity_all_full = np.concatenate([ellipticity_all[::-1], ellipticity_all])
+density_full = np.concatenate([density[::-1], density])  # if symmetric
+
+# Plot
+ax2.plot(zs_all_full, ellipticity_all_full, label='Ellipticity')
+ax2.plot(zs_all_full, density_full, color='purple', label='Plasma density')
 
 # Plot density and ellipticity on ax2
 #ax2.plot(density, ellipticity_all, color='purple', label='Ellipticity')

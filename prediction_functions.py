@@ -16,7 +16,7 @@ from scipy.interpolate import interp1d
 import matplotlib.patches as patches
 from scipy.interpolate import RectBivariateSpline
 from scipy.stats import norm
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from scipy.integrate import odeint
 def Kr(gamma):
     return 1/(2*gamma)

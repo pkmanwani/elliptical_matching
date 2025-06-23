@@ -17,7 +17,7 @@ import matplotlib.patches as patches
 from scipy.interpolate import RectBivariateSpline
 from scipy.stats import norm
 import contextlib
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from scipy.interpolate import CubicSpline
 plt.rcParams['figure.dpi'] =200
 matplotlib.rcParams.update({'font.size': 12})
@@ -67,8 +67,9 @@ zs_drift = np.linspace(zs.min(),zs.max(),points)
 density_pic=[]
 for z in zs_drift:
     density_pic.append(pf.plasma_density(z,model,plasma_upramp_end,sigma,length))
-#zs_drift_2 = np.linspace(zs.max(),zs.min(),points)
-#solution = odeint(pf.ode_plasma_estimate_ellipticity, initial_conditions, zs_drift,  args=(model, plasma_upramp_end, sigma, length, n_pe, gamma_b, ellipticity_interpolator, min_density))
+
+zs_drift_2 = np.linspace(zs.max(),zs.min(),points)
+solution = odeint(pf.ode_plasma_estimate_ellipticity, initial_conditions, zs_drift,  args=(model, plasma_upramp_end, sigma, length, n_pe, gamma_b, ellipticity_interpolator, min_density))
 solution_axi = odeint(pf.ode_plasma, initial_conditions_axi, zs_drift,  args=(model, plasma_upramp_end, sigma, length, n_pe, gamma_b,1))
 #beta_x= solution[:,0]
 #beta_y = solution[:,2]
