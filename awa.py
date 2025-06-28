@@ -23,28 +23,27 @@ plt.rcParams['figure.dpi'] =200
 matplotlib.rcParams.update({'font.size': 12})
 from scipy.integrate import odeint
 import prediction_functions as pf
-n0_base = 5e19
+n0_base = 1e20
 n_pe= n0_base
 kpn1=pf.calculate_kpn1(n_pe)
 print(kpn1)
 window_size=5
 num_points=300
 # Declare intrinsic parameters
-emit_nx = 207e-6
-emit_ny = 14e-6
+emit_nx = 400e-6
+emit_ny = 20e-6
 sigma_z = 600e-6
 Q =2e-9
 E = 58e6
 gamma = E/0.511e6 + 1
 gamma_b = gamma
 #Define plasma parameters
-points = 90
+points = 100
 #emittance_n_x = 0.9e-6
 length = 1e-2
 sigma = 0.25e-2
 #extra_length = 5e-2
-zs = np.linspace(0,0.02, points)
-
+zs = np.linspace(0,length+4*sigma, points)
 #ellipticity = 2
 ellipticity_2 = 1
 plasma_upramp_end = 0
@@ -88,9 +87,10 @@ ellipticity_all = np.array(list(density_ellipticity_map.values()))
 ellipticity_interpolator = interp1d(unique_densities, ellipticity_all, kind='linear', fill_value=(1, 1), bounds_error=False)
 min_density = unique_densities.min()
 print(f'Minimum density: {min_density}')
-points = 90
-zs = np.linspace(0,0.02, points)
+zs = np.linspace(0,length+4*sigma, points)
 zs_drift = np.linspace(zs.min(),zs.max(),points)
+#zs_drift_2 = -np.sort(np.asarray(zs_drift))[1:]
+#zs_drift = np.concatenate((zs_drift,zs_drift_2))
 density_pic=[]
 for z in zs_drift:
     density_pic.append(pf.plasma_density(z,model,plasma_upramp_end,sigma,length))
@@ -129,7 +129,7 @@ beta_x_end_axi = beta_x_values_axi[-1]
 alpha_x_end_axi = alpha_x_values_axi[-1]
 beta_y_end_axi = beta_y_values_axi[-1]
 alpha_y_end_axi = alpha_y_values_axi[-1]
-
+"""
 plt.plot(zs_drift,beta_x_values*1e2, label ='Beta x (cm)')
 plt.plot(zs_drift,beta_x_values_axi*1e2, label = 'Beta x (axi) (cm)')
 plt.plot(zs_drift,beta_y_values*1e2,label = 'Beta y (cm)')
@@ -139,7 +139,7 @@ plt.plot(zs_all,ellipticity_all,label='Ellipticity profile')
 plt.legend()
 plt.show()
 plt.savefig('ellipticity_.png')
-
+"""
 #plt.plot(zs,beta_x_values)
 zs_drift = np.linspace(zs.max(),zs.min(),points)
 zs_drift_2 = -np.sort(np.asarray(zs_drift))[1:]
@@ -147,6 +147,7 @@ zs_drift_2 = -np.sort(np.asarray(zs_drift))[1:]
 #print(zs_2)
 #print(extra_array)
 zs_drift = np.concatenate((zs_drift,zs_drift_2))
+
 density_pic=[]
 for z in zs_drift:
     density_pic.append(pf.plasma_density(z,model,plasma_upramp_end,sigma,length))
@@ -210,6 +211,8 @@ beta_y_plasma_wrong = solution_plasma_wrong[:,2]
 alpha_y_plasma_wrong = solution_plasma_wrong[:,3]
 #gamma_b_plasma_wrong = solution_plasma_wrong[:,4]
 print(rf'Drift parameters at waist ($\beta_x$,$\beta_y$): {min(beta_x_drift)},{min(beta_y_drift)}')
+print(rf'Spot size at waist ($\sigma_x$,$\sigma_y$): {np.sqrt(min(beta_x_drift)*emit_nx/gamma)},{np.sqrt(min(beta_y_drift)*emit_ny/gamma)}')
+print(rf'Spot size at waist ($\sigma_x$,$\sigma_y$) PICYe: {np.sqrt(min(beta_x_drift)*emit_nx/gamma)/kpn1[0]},{np.sqrt(min(beta_y_drift)*emit_ny/gamma)/kpn1[0]}')
 print(rf'Drift waist ($z_x$,$z_y$): {zs_drift[np.argmin(beta_x_drift)]},{zs_drift[np.argmin(beta_y_drift)]}')
 
 # Calculate spot sizes
@@ -226,19 +229,30 @@ fig, (ax2, ax1) = plt.subplots(2, 1, figsize=(6, 8), sharex=True)
 # Adjust space between subplots
 plt.subplots_adjust(hspace=0.06)
 # First subplot for sigma_x and sigma_y
-
-sigma_x_drift_line, = ax1.plot(-zs_drift, sigma_x_drift*1e6, color='orange', label='x (vacuum)')
-sigma_x_line, = ax1.plot(-zs_drift, sigma_x*1e6, color='red', label=r'x ($\alpha_p$)')
-sigma_x_wrong_line, = ax1.plot(-zs_drift, sigma_x_wrong*1e6, color='red', linestyle='dotted', label=r'x (axi)')
-sigma_y_drift_line, = ax1.plot(-zs_drift, sigma_y_drift*1e6, color='blue', label='y (vacuum)')
-sigma_y_line, = ax1.plot(-zs_drift, sigma_y*1e6, color='green', label=r'y ($\alpha_p$)')
-sigma_y_wrong_line, = ax1.plot(-zs_drift, sigma_y_wrong*1e6, color='green', linestyle='dotted', label=r'y (axi)')
-density_line, =  ax2.plot(-zs_drift, density_asym,color='pink', label=r'$n_b$ ($\alpha_p$)')
-density_axi_line, =  ax2.plot(-zs_drift, density_axi, color='pink', linestyle='dotted', label=r'$n_b$ (axi)')
+zs_all = np.flip(zs_drift+zs_drift[0])
+density_all = []
+ellipticity_all = []
+for z in zs_all:
+    density_all.append(pf.plasma_density(z, model, length+4*sigma,sigma, length))
+for current_density in density_all:
+    # Interpolate the ellipticity based on the current plasma density
+    if current_density < min_density:
+        ellipticity = 1.0
+    else:
+        ellipticity = ellipticity_interpolator(current_density)
+    ellipticity_all.append(ellipticity)
+sigma_x_drift_line, = ax1.plot(zs_all, sigma_x_drift*1e6, color='orange', label='x (vacuum)')
+sigma_x_line, = ax1.plot(zs_all, sigma_x*1e6, color='red', label=r'x ($\alpha_p$)')
+sigma_x_wrong_line, = ax1.plot(zs_all, sigma_x_wrong*1e6, color='red', linestyle='dotted', label=r'x (axi)')
+sigma_y_drift_line, = ax1.plot(zs_all, sigma_y_drift*1e6, color='blue', label='y (vacuum)')
+sigma_y_line, = ax1.plot(zs_all, sigma_y*1e6, color='green', label=r'y ($\alpha_p$)')
+sigma_y_wrong_line, = ax1.plot(zs_all, sigma_y_wrong*1e6, color='green', linestyle='dotted', label=r'y (axi)')
+density_line, =  ax2.plot(zs_all, density_asym,color='pink', label=r'$n_b$ ($\alpha_p$)')
+density_axi_line, =  ax2.plot(zs_all, density_axi, color='pink', linestyle='dotted', label=r'$n_b$ (axi)')
 density_line_2, =  ax1.plot([],[], color='pink', label=r'$n_b$ ($\alpha_p$)')
 density_axi_line_2, =  ax1.plot([],[], color='pink', linestyle='dotted', label=r'$n_b$ (axi)')
 # Plot density and ellipticity on ax2
-ax1.plot(zs_all, ellipticity_all, label='Ellipticity')
+#ax1.plot(zs_all, ellipticity_all, label='Ellipticity')
 #ax1.plot(zs_all, density_all, color='purple', label='Density')
 #ax1.plot(zst,ellipticity_all, label=r'$\alpha_p$ (flattop)')
 #blank_handle, = ax1.plot(np.NaN, np.NaN, '-', color='none', label='')
@@ -258,25 +272,23 @@ labels.append('Plasma profile (a.u.)')
 ax1.set_ylabel(r'$\sigma$ ($\mu$m)')
 
 # Second subplot for beta_x and beta_y
-beta_x_drift_line, = ax2.plot(-zs_drift, beta_x_drift*1e2, color='orange', label='x (vacuum)')
+beta_x_drift_line, = ax2.plot(zs_all, beta_x_drift*1e2, color='orange', label='x (vacuum)')
 #ax2.plot(-zs_drift,ellipticity_all, label='$\alpha_p$')
-beta_x_line, = ax2.plot(-zs_drift, beta_x_plasma*1e2, color='red', label='x ($\alpha_p$)')
-beta_x_wrong_line, = ax2.plot(-zs_drift, beta_x_plasma_wrong*1e2, color='red', linestyle='dotted', label='x (axi)')
-beta_y_drift_line, = ax2.plot(-zs_drift, beta_y_drift*1e2, color='blue', label='y (vacuum)')
-beta_y_line, = ax2.plot(-zs_drift, beta_y_plasma*1e2, color='green', label='y ($\alpha_p$)')
+beta_x_line, = ax2.plot(zs_all, beta_x_plasma*1e2, color='red', label='x ($\alpha_p$)')
+beta_x_wrong_line, = ax2.plot(zs_all, beta_x_plasma_wrong*1e2, color='red', linestyle='dotted', label='x (axi)')
+beta_y_drift_line, = ax2.plot(zs_all, beta_y_drift*1e2, color='blue', label='y (vacuum)')
+beta_y_line, = ax2.plot(zs_all, beta_y_plasma*1e2, color='green', label='y ($\alpha_p$)')
 
-beta_y_wrong_line, = ax2.plot(-zs_drift, beta_y_plasma_wrong*1e2, color='green', linestyle='dotted', label='y (axi)')
-# Mirror the arrays
-zs_all = np.array(zs_all)
-ellipticity_all = np.array(ellipticity_all)
-density = np.array(density)
-zs_all_full = np.concatenate([-zs_all[::-1], zs_all])
-ellipticity_all_full = np.concatenate([ellipticity_all[::-1], ellipticity_all])
-density_full = np.concatenate([density[::-1], density])  # if symmetric
+beta_y_wrong_line, = ax2.plot(zs_all, beta_y_plasma_wrong*1e2, color='green', linestyle='dotted', label='y (axi)')
+#ellipticity_all = np.array(ellipticity_all)
+density_all = np.array(density_all)
+#zs_all_full = np.concatenate([-zs_all[::-1], zs_all])
+#ellipticity_all_full = np.concatenate([ellipticity_all[::-1], ellipticity_all])
+#density_full = np.concatenate([density[::-1], density])  # if symmetric
 
 # Plot
-ax2.plot(zs_all_full, ellipticity_all_full, label='Ellipticity')
-ax2.plot(zs_all_full, density_full, color='purple', label='Plasma density')
+ax2.plot(zs_all, ellipticity_all, label='Ellipticity')
+ax2.plot(zs_all, density_all, color='purple', label='Plasma density')
 
 # Plot density and ellipticity on ax2
 #ax2.plot(density, ellipticity_all, color='purple', label='Ellipticity')
