@@ -38,7 +38,7 @@ E = 58e6
 gamma = E/0.511e6 + 1
 gamma_b = gamma
 #Define plasma parameters
-points = 100
+points = 200
 #emittance_n_x = 0.9e-6
 length = 1e-2
 sigma = 0.25e-2
@@ -147,13 +147,13 @@ zs_drift_2 = -np.sort(np.asarray(zs_drift))[1:]
 #print(zs_2)
 #print(extra_array)
 zs_drift = np.concatenate((zs_drift,zs_drift_2))
-
+print(zs_drift)
 density_pic=[]
 for z in zs_drift:
     density_pic.append(pf.plasma_density(z,model,plasma_upramp_end,sigma,length))
 pf.plasma_export_PIC(density_pic,np.flip(zs_drift+zs_drift[0]),n_pe,1e-4)
 pf.PIC_corrector('plasma_density_PIC.txt')
-print(zs_drift)
+
 initial_drift = [beta_x_end,alpha_x_end,beta_y_end,alpha_y_end]
 initial_drift_axi = [beta_x_end_axi,alpha_x_end_axi,beta_y_end_axi,alpha_y_end_axi]
 initial_drift_kpn1 = [beta_x_end/kpn1[0],alpha_x_end,beta_y_end/kpn1[0],alpha_y_end]
@@ -191,6 +191,7 @@ print(rf'emit_ny axi (PIC): {np.sqrt(emit_nx*emit_ny)/kpn1[0]}')
 #print(rf'sigma_vy axi: {emit_ny/initial_sigma_y_axi}')
 #print(rf'Drift parameters at waist ($\beta_x$,$\beta_y$): {initial_drift}')
 #initial_wrong = [beta_x_end,alpha_x_end,beta_y_end,alpha_y_end,gamma_b]
+print(zs_drift)
 solution_drift = odeint(pf.ode_drift, initial_drift, zs_drift)
 solution_plasma = odeint(pf.ode_plasma_estimate_ellipticity, initial_drift, zs_drift, args=(model, plasma_upramp_end, sigma, length, n_pe, gamma_b, ellipticity_interpolator, min_density))
 solution_plasma_wrong = odeint(pf.ode_plasma_estimate_ellipticity, initial_drift_axi, zs_drift, args=(model, plasma_upramp_end, sigma, length, n_pe, gamma_b, ellipticity_interpolator, min_density))
@@ -212,9 +213,9 @@ alpha_y_plasma_wrong = solution_plasma_wrong[:,3]
 #gamma_b_plasma_wrong = solution_plasma_wrong[:,4]
 print(rf'Drift parameters at waist ($\beta_x$,$\beta_y$): {min(beta_x_drift)},{min(beta_y_drift)}')
 print(rf'Spot size at waist ($\sigma_x$,$\sigma_y$): {np.sqrt(min(beta_x_drift)*emit_nx/gamma)},{np.sqrt(min(beta_y_drift)*emit_ny/gamma)}')
-print(rf'Spot size at waist ($\sigma_x$,$\sigma_y$) PICYe: {np.sqrt(min(beta_x_drift)*emit_nx/gamma)/kpn1[0]},{np.sqrt(min(beta_y_drift)*emit_ny/gamma)/kpn1[0]}')
+print(rf'Spot size at waist ($\sigma_x$,$\sigma_y$) PIC: {np.sqrt(min(beta_x_drift)*emit_nx/gamma)/kpn1[0]},{np.sqrt(min(beta_y_drift)*emit_ny/gamma)/kpn1[0]}')
 print(rf'Drift waist ($z_x$,$z_y$): {zs_drift[np.argmin(beta_x_drift)]},{zs_drift[np.argmin(beta_y_drift)]}')
-
+print(rf'Focal length ($L_x$,$L_y$): {length+4*sigma+alpha_x_end*beta_x_end/(1+(alpha_x_end**2))},{length+4*sigma+alpha_y_end*beta_y_end/(1+(alpha_y_end**2))}')
 # Calculate spot sizes
 sigma_x = np.sqrt(beta_x_plasma*emit_nx/gamma_b)
 sigma_y = np.sqrt(beta_y_plasma*emit_ny/gamma_b)
